@@ -15,6 +15,7 @@ from app.services.news import summarize_news
 from app.services.patterns import detect_patterns, to_schema
 from app.services.recommendations import build_recommendations, parse_watchlist
 from app.services.scoring import score_pattern
+from app.services.nikkei_sector_task_api import router as nikkei_sector_task_router
 
 
 app = FastAPI(
@@ -22,6 +23,7 @@ app = FastAPI(
     version="0.6.0",
     description="個人用の FX / 株デイトレ補佐ツール。チャートパターン、ニュース監視、日本株コード入力、時間足プリセット、注目銘柄スキャン、深掘り理由表示、監視銘柄リスト保存に対応。",
 )
+app.include_router(nikkei_sector_task_router)
 
 app.add_middleware(
     CORSMiddleware,
