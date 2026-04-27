@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>トレード補佐ツール MVP</title>
+    <link rel="stylesheet" href="/static/styles.css?v=10" />
+    <script defer src="/static/vendor/plotly.min.js"></script>
+    <script defer src="/static/app.js?v=10"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>トレード補佐ツール MVP</h1>
+        <p>FX / 株デイトレ向けの個人用補佐ツール</p>
+      </div>
+      <div class="header-note">
+        <div id="provider-badge" class="badge">データ元: 自動</div>
+        <div class="badge subtle">日本株は 7203 / 6758 / 9984、米国株は AAPL / NVDA のように入力</div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel controls">
+        <div class="row">
+          <label>
+            資産
+            <select id="asset-class">
+              <option value="fx">FX</option>
+              <option value="stock">株</option>
+            </select>
+          </label>
+          <label>
+            シンボル
+            <input id="symbol" value="BOT_USDJPY" />
+          </label>
+          <label>
+            時間足
+            <select id="timeframe">
+              <option value="1m">1分</option>
+              <option value="5m" selected>5分</option>
+              <option value="15m">15分</option>
+              <option value="30m">30分</option>
+              <option value="1h">1時間</option>
+              <option value="4h">4時間</option>
+              <option value="1d">日足</option>
+            </select>
+          </label>
+          <label>
+            データ元
+            <select id="provider">
+              <option value="auto" selected>自動</option>
+              <option value="demo">デモ</option>
+              <option value="oanda">OANDA</option>
+              <option value="alpaca">Alpaca</option>
+              <option value="yfinance">Yahoo Finance</option>
+            </select>
+          </label>
+          <label>
+            本数
+            <input id="limit" type="number" min="80" max="1000" value="240" />
+          </label>
+        </div>
+        <div class="row compact">
+          <button id="load-btn">読み込み</button>
+          <button id="demo-bot-btn" class="secondary">底型デモ</button>
+          <button id="demo-top-btn" class="secondary">天井型デモ</button>
+          <div id="status" class="status">準備完了</div>
+        </div>
+        <div class="preset-strip">
+          <div class="preset-head">
+            <strong>おすすめ足セット</strong>
+            <span id="preset-summary" class="caption">未選択。FXデイトレ / 日本株デイトレ / スイングから選べます。</span>
+          </div>
+          <div class="preset-row">
+            <button class="secondary small preset-btn" data-preset="fx_day">FXデイトレ</button>
+            <button class="secondary small preset-btn" data-preset="jp_stock_day">日本株デイトレ</button>
+            <button class="secondary small preset-btn" data-preset="swing">スイング</button>
+          </div>
+          <div class="preset-row role-row">
+            <button class="secondary small role-btn" data-role="upper">上位足を見る</button>
+            <button class="secondary small role-btn" data-role="pattern">パターン足を見る</button>
+            <button class="secondary small role-btn" data-role="entry">実行足を見る</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel recommendations-panel">
+        <div class="panel-header">
+          <div>
+            <h2>今日の注目銘柄</h2>
+            <div id="recommendation-summary" class="caption">監視銘柄をスキャンすると、日足・上位足・現在サインをまとめて表示します。</div>
+          </div>
+          <button id="scan-recommendations-btn" class="secondary small">注目銘柄をスキャン</button>
+        </div>
+        <div class="row compact recommendation-controls">
+          <label class="watchlist-field">
+            監視銘柄（カンマ区切り）
+            <input id="watchlist-input" placeholder="7203,6758,9984,8306,9432,7974" />
+          </label>
+          <div class="watchlist-actions">
+            <button id="save-watchlist-btn" class="secondary small">監視銘柄を保存</button>
+            <button id="restore-watchlist-btn" class="secondary small">保存リストを復元</button>
+            <button id="clear-watchlist-btn" class="secondary small danger-lite">保存削除</button>
+          </div>
+        </div>
+        <div id="watchlist-save-status" class="caption watchlist-save-status">保存すると、次回起動時に監視銘柄・足セット・フィルタが自動復元されます。</div>
+        <div id="recommendations"></div>
+      </section>
+
+      <section class="panel chart-panel">
+        <div class="panel-header">
+          <h2>チャート</h2>
+          <div id="chart-caption" class="caption">パターン検出後にネックラインやエントリー帯を重ねて表示します。</div>
+        </div>
+        <div id="chart"></div>
+      </section>
+
+      <section class="panel patterns-panel">
+        <div class="panel-header">
+          <div>
+            <h2>検出サイン</h2>
+            <div id="timeframe-hint" class="caption">時間足ごとに優先表示を調整します。</div>
+          </div>
+          <div id="pattern-count" class="caption">0 件</div>
+        </div>
+        <div id="signal-summary" class="signal-summary"></div>
+        <div class="filter-bar" id="pattern-filters">
+          <label class="filter-inline">
+            品質
+            <select id="quality-filter">
+              <option value="all">すべて</option>
+              <option value="60">60以上</option>
+              <option value="70" selected>70以上</option>
+              <option value="80">80以上</option>
+            </select>
+          </label>
+          <label class="toggle-chip">
+            <input id="current-only" type="checkbox" />
+            <span>現在サインのみ</span>
+          </label>
+          <label class="toggle-chip">
+            <input id="confirmed-only" type="checkbox" />
+            <span>確定のみ</span>
+          </label>
+          <button id="reset-filters" class="secondary small">絞り込み解除</button>
+        </div>
+        <div id="filter-summary" class="filter-summary"></div>
+        <div id="patterns"></div>
+      </section>
+
+      <section class="panel news-panel">
+        <div class="panel-header">
+          <h2>ニュース要約</h2>
+          <div id="news-bias" class="caption">中立</div>
+        </div>
+        <div id="news-summary"></div>
+        <div id="news-articles" class="articles"></div>
+      </section>
+    </main>
+  </body>
+</html>
