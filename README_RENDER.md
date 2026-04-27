@@ -1,13 +1,10 @@
 # Render Deploy
 
-## Build Command
-
+Build:
 pip install -r requirements.txt
 
-## Start Command
-
+Start:
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
-## Health Check Path
-
-/api/health
+Health:
+ /api/health
